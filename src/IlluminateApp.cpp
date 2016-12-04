@@ -1,3 +1,4 @@
+//
 #include "cinder/app/AppNative.h"
 #include "cinder/Capture.h"
 #include "cinder/gl/Texture.h"
@@ -9,6 +10,7 @@
 #include "OscBundle.h"
 #include "OscListener.h"
 #include "OscMessage.h"
+#include "XmlSettings.h"
 
 #define OSC_PORT    8000
 
@@ -35,9 +37,15 @@ class IlluminateApp : public AppNative {
     void draw();
     void keyDown(KeyEvent event);
     
+    nocte::XmlSettings  mSettings;
+    
     // Camera and image variables
     vector<CaptureInfo> mCaptureInfos;
     CaptureInfo         mCaptureInfo;
+    std::string         camName;
+    int                 camWidth;
+    int                 camHeight;
+    
     CaptureRef	        mCapture;
     Surface             mImgSurface;
     Surface             mDisplaySurface;
@@ -73,7 +81,7 @@ class IlluminateApp : public AppNative {
     cinder::Area        mDrawArea;
     Rectf               mDrawAreaScreen;
     
-    void selectCamera(int idx);
+    void selectCamera(int idx, bool resetZoom);
     // camera button callbacks
     void selectCamera0();
     void selectCamera1();
@@ -83,7 +91,70 @@ class IlluminateApp : public AppNative {
     void selectCamera5();
     void selectCamera6();
     void selectCamera7();
+    
+    void setupSettings();
+    void loadSettings();
+    void saveSettings();
 };
+
+void IlluminateApp::setupSettings() {
+    mSettings.addParam("zoom", &mCameraDistance);
+    mSettings.addParam("movel2r", &mMoveL2R);
+    mSettings.addParam("movet2b", &mMoveT2B);
+    mSettings.addParam("skew", &mSkew);
+    mSettings.addParam("feedback", &mFeedback);
+    mSettings.addParam("bluron", &mBlurOn);
+    mSettings.addParam("huemodon", &mHueModOn);
+    mSettings.addParam("huerotspeed", &mHueRotSpeed);
+    mSettings.addParam("fliphorz", &mFlipHorz);
+    mSettings.addParam("newestframemix", &mNewestFrameMix);
+    
+    mSettings.addParam("camname", &camName);
+    mSettings.addParam("camwidth", &camWidth);
+    mSettings.addParam("camheight", &camHeight);
+}
+
+void IlluminateApp::loadSettings() {
+    string filename = getOpenFilePath().generic_string();
+    
+    if ( filename != "" ) {
+        mSettings.load(filename);
+        console() << "loaded settings from file" << endl;
+        if (!camName.empty() && camWidth > 0 && camHeight > 0) {
+            for( vector<CaptureInfo>::const_iterator it = mCaptureInfos.begin(); it != mCaptureInfos.end(); ++it ) {
+                CaptureInfo info = *it;
+                if (info.deviceRef->getName().compare(camName) == 0) {
+                    // start camera
+                    mCaptureInfo = info;
+                    try {
+                        if (mCapture) {
+                            mCapture->stop();
+                            mCapture = NULL;
+                        }
+                        mCapture = Capture::create(mCaptureInfo.width, mCaptureInfo.height, mCaptureInfo.deviceRef);
+                        mCapture->start();
+                        console() << "Started capture: " << mCaptureInfo.deviceRef->getName() << ", " << mCaptureInfo.width << "x" << mCaptureInfo.height << endl;
+                    }
+                    catch( CaptureExc & ) {
+                        console() << "Error starting capture " << mCaptureInfo.deviceRef->getName() << ", " << mCaptureInfo.width << "x" << mCaptureInfo.height << endl;
+                    }
+                }
+            }
+        }
+    } else {
+        console() << "error loading settings from file" << endl;
+    }
+}
+
+void IlluminateApp::saveSettings() {
+    fs::path path = getSaveFilePath().generic_string();
+    if ( !path.empty() ) {
+        mSettings.save( path );
+        console() << "saved settings from file" << endl;
+    } else {
+        console() << "error saving settings from file" << endl;
+    }
+}
 
 void IlluminateApp::prepareSettings( Settings *settings ) {
     settings->setFrameRate(60);
@@ -101,6 +172,8 @@ void IlluminateApp::prepareSettings( Settings *settings ) {
 
 void IlluminateApp::setup()
 {
+    setupSettings();
+    
     int numCaptureResolutions = 1;
     int captureResolutionsWidth[] = {640}; //1024, 800,
     int captureResolutionsHeight[] = {480}; //768, 600,
@@ -146,19 +219,6 @@ void IlluminateApp::setup()
         }
         c++;
     }
-    
-    // TODO : remove this default device starting
-    /*
-    try {
-        mCapture = Capture::create(640, 480);
-        mCaptureInfo.width = 640;
-        mCaptureInfo.height = 480;
-        mCapture->start();
-    }
-    catch( ... ) {
-        console() << "Failed to initialize capture" << std::endl;
-    }
-     */
     
     mCameraDistance = ZOOM;
     mEye			= Vec3f( 0.0f, 0.0f, mCameraDistance );
@@ -232,12 +292,15 @@ void IlluminateApp::setup()
     } else {
         mParams.addText("No cameras detected");
     }
+    mParams.addSeparator();
+    mParams.addButton("Save settings", [&]{saveSettings();});
+    mParams.addButton("Load settings", [&]{loadSettings();});
     
     // Start OSC listener
     listener.setup(OSC_PORT);
 }
 
-void IlluminateApp::selectCamera(int idx)
+void IlluminateApp::selectCamera(int idx, bool resetZoom)
 {
     if (mCaptureInfos.size() > 0 && idx < mCaptureInfos.size()) {
         int c = 0;
@@ -251,9 +314,14 @@ void IlluminateApp::selectCamera(int idx)
                         mCapture->stop();
                         mCapture = NULL;
                     }
-                    mCameraDistance = 1100;
+                    if (resetZoom) {
+                        mCameraDistance = 1100;
+                    }
                     mCapture = Capture::create(mCaptureInfo.width, mCaptureInfo.height, mCaptureInfo.deviceRef);
                     mCapture->start();
+                    camName = mCaptureInfo.deviceRef->getName();
+                    camWidth = mCaptureInfo.width;
+                    camHeight = mCaptureInfo.height;
                     console() << "Started capture: " << mCaptureInfo.deviceRef->getName() << ", " << mCaptureInfo.width << "x" << mCaptureInfo.height << endl;
                 }
                 catch( CaptureExc & ) {
@@ -268,42 +336,42 @@ void IlluminateApp::selectCamera(int idx)
 
 void IlluminateApp::selectCamera0()
 {
-    selectCamera(0);
+    selectCamera(0, true);
 }
 
 void IlluminateApp::selectCamera1()
 {
-    selectCamera(1);
+    selectCamera(1, true);
 }
 
 void IlluminateApp::selectCamera2()
 {
-    selectCamera(2);
+    selectCamera(2, true);
 }
 
 void IlluminateApp::selectCamera3()
 {
-    selectCamera(3);
+    selectCamera(3, true);
 }
 
 void IlluminateApp::selectCamera4()
 {
-    selectCamera(4);
+    selectCamera(4, true);
 }
 
 void IlluminateApp::selectCamera5()
 {
-    selectCamera(5);
+    selectCamera(5, true);
 }
 
 void IlluminateApp::selectCamera6()
 {
-    selectCamera(6);
+    selectCamera(6, true);
 }
 
 void IlluminateApp::selectCamera7()
 {
-    selectCamera(7);
+    selectCamera(7, true);
 }
 
 void IlluminateApp::keyDown( KeyEvent event )
