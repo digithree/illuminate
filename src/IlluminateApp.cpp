@@ -28,6 +28,7 @@ class IlluminateApp : public AppNative {
     };
     
     const float ZOOM = 300, ML2R = -675, MT2B = -500, SKEW = 0, FEEDBACK = 0.9, HUE_ROT_SPD_FACTOR = 0.01f, NEW_FRAME_MIX = 0.f;
+    const int FRAME_SKIP = 0;
     
     // setup our functions/methods
     void prepareSettings(Settings *settings);
@@ -66,6 +67,8 @@ class IlluminateApp : public AppNative {
     float               mSkew;
     
     float               mFeedback;
+    int                 mFrameSkip;
+    int                 mSkippedFrames;
     bool                mBlurOn;
     
     bool                mHueModOn;
@@ -103,6 +106,7 @@ void IlluminateApp::setupSettings() {
     mSettings.addParam("movet2b", &mMoveT2B);
     mSettings.addParam("skew", &mSkew);
     mSettings.addParam("feedback", &mFeedback);
+    mSettings.addParam("frameskip", &mFrameSkip);
     mSettings.addParam("bluron", &mBlurOn);
     mSettings.addParam("huemodon", &mHueModOn);
     mSettings.addParam("huerotspeed", &mHueRotSpeed);
@@ -231,6 +235,8 @@ void IlluminateApp::setup()
     mSkew = SKEW;
     
     mFeedback = FEEDBACK;
+    mFrameSkip = FRAME_SKIP;
+    mSkippedFrames = 0;
     
     mFlipHorz = true;
     
@@ -248,7 +254,8 @@ void IlluminateApp::setup()
     mParams.addParam( "Move Left to Right", &mMoveL2R, "min=-1500.0 max=1500.0 step=5.0 keyIncr=w keyDecr=s" );
     mParams.addParam( "Move Top to Bottom", &mMoveT2B, "min=-1500.0 max=1500.0 step=5.0 keyIncr=e keyDecr=d" );
     mParams.addParam( "Skew", &mSkew, "min=-85.0 max=85.0 step=1.0 keyIncr=r keyDecr=f" );
-    mParams.addParam( "Feedback", &mFeedback, "min=0.01 max=1.0 step=0.01 keyIncr=t keyDecr=g" );
+    mParams.addParam( "Feedback", &mFeedback, "min=0.000001 max=1.0 step=0.000001 keyIncr=t keyDecr=g" );
+    mParams.addParam( "Frame Skip", &mFrameSkip, "min=0 max=60 step=1 keyIncr=y keyDecr=h" );
     mParams.addParam( "Bur active", &mBlurOn, "" );
     mParams.addParam( "Hue rotation active", &mHueModOn, "" );
     mParams.addParam( "Hue rotation spd", &mHueRotSpeed, "min=0.00 max=1.0 step=0.01 keyIncr=y keyDecr=h" );
@@ -441,6 +448,9 @@ void IlluminateApp::update()
     }
     
     if (mCapture && mCapture->checkNewFrame()) {
+        if (++mSkippedFrames >= mFrameSkip) {
+            mSkippedFrames = 0;
+        }
         Surface newFrameSurface = mCapture->getSurface();
         if (mImgSurface) {
             Surface::Iter iterOldSurface = mImgSurface.getIter();
@@ -462,10 +472,17 @@ void IlluminateApp::update()
                         iterNewSurface.b() = pix.b;
                     }
                     if (mBlurOn) {
-                        // feedback
-                        iterOldSurface.r() = (int)(((float)iterOldSurface.r()) * mFeedback);
-                        iterOldSurface.g() = (int)(((float)iterOldSurface.g()) * mFeedback);
-                        iterOldSurface.b() = (int)(((float)iterOldSurface.b()) * mFeedback);
+                        if (mSkippedFrames == 0) {
+                            // feedback
+                            iterOldSurface.r() = (int)(((float)iterOldSurface.r()) * mFeedback);
+                            iterOldSurface.g() = (int)(((float)iterOldSurface.g()) * mFeedback);
+                            iterOldSurface.b() = (int)(((float)iterOldSurface.b()) * mFeedback);
+                        } else {
+                            // 100% feedback on skipped frames
+                            //iterOldSurface.r() = iterOldSurface.r();
+                            //iterOldSurface.g() = iterOldSurface.g();
+                            //iterOldSurface.b() = iterOldSurface.b();
+                        }
                         // lighten
                         iterOldSurface.r() = iterNewSurface.r() > iterOldSurface.r() ? iterNewSurface.r() : iterOldSurface.r();
                         iterOldSurface.g() = iterNewSurface.g() > iterOldSurface.g() ? iterNewSurface.g() : iterOldSurface.g();
