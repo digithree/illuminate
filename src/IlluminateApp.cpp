@@ -74,6 +74,9 @@ class IlluminateApp : public AppNative {
     bool                mHueModOn;
     float               mHueRotSpeed;
     float               mHuePosition;
+    float               mHueCenter;
+    float               mHueWidth;
+    bool                mHueDirection;
     
     bool                mFlipHorz;
     
@@ -113,6 +116,8 @@ void IlluminateApp::setupSettings() {
     mSettings.addParam("frameskip", &mFrameSkip);
     mSettings.addParam("bluron", &mBlurOn);
     mSettings.addParam("huemodon", &mHueModOn);
+    mSettings.addParam("huecenter", &mHueCenter);
+    mSettings.addParam("huewidth", &mHueWidth);
     mSettings.addParam("huerotspeed", &mHueRotSpeed);
     mSettings.addParam("fliphorz", &mFlipHorz);
     mSettings.addParam("newestframemix", &mNewestFrameMix);
@@ -287,6 +292,9 @@ void IlluminateApp::setup()
     mHueModOn = false;
     mHueRotSpeed = 0.f;
     mHuePosition = 0.f;
+    mHueCenter = 0.f;
+    mHueWidth = 1.f;
+    mHueDirection = true; //forward
     
     mNewestFrameMix = NEW_FRAME_MIX;
     
@@ -304,6 +312,8 @@ void IlluminateApp::setup()
     mParams.addParam( "Frame Skip", &mFrameSkip, "min=0 max=2 step=1 keyIncr=y keyDecr=h" );
     mParams.addParam( "Blur active", &mBlurOn, "" );
     mParams.addParam( "Hue rotation active", &mHueModOn, "" );
+    mParams.addParam( "Hue rotation center", &mHueCenter, "min=0.00 max=1.0 step=0.01" );
+    mParams.addParam( "Hue rotation width", &mHueWidth, "min=0.00 max=1.0 step=0.01" );
     mParams.addParam( "Hue rotation spd", &mHueRotSpeed, "min=0.00 max=1.0 step=0.01 keyIncr=y keyDecr=h" );
     mParams.addParam( "Flip horz", &mFlipHorz, "" );
     mParams.addParam( "Newest Frame Mix", &mNewestFrameMix, "min=0.00 max=1.0 step=0.01 keyIncr=u keyDecr=j" );
@@ -515,9 +525,15 @@ void IlluminateApp::update()
     }
     
     if (mCapture && mCapture->isCapturing()) {
-        mHuePosition += (mHueRotSpeed * HUE_ROT_SPD_FACTOR);
-        if (mHuePosition > (1.f)) {
-            mHuePosition = 0.f;
+        mHuePosition += (mHueRotSpeed * HUE_ROT_SPD_FACTOR * (mHueDirection ? 1.f : -1.f));
+        float upperBound = mHueCenter + (mHueWidth / 2.f);
+        float lowerBound = mHueCenter - (mHueWidth / 2.f);
+        if (mHuePosition > upperBound) {
+            mHuePosition = upperBound;
+            mHueDirection = false;
+        } else if (mHuePosition < lowerBound) {
+            mHuePosition = lowerBound;
+            mHueDirection = true;
         }
         
         // UPDATE CAMERA
@@ -545,9 +561,17 @@ void IlluminateApp::update()
                     if (mHueModOn) {
                         // hue rotation
                         Vec3f hsvVec = rgbToHSV(Colorf(iterNewSurface.r(), iterNewSurface.g(), iterNewSurface.b()));
+                        float boundedHuePosition = mHuePosition;
+                        if (boundedHuePosition < 0.f) {
+                            boundedHuePosition += 1.f;
+                        } else if (boundedHuePosition > 1.f) {
+                            boundedHuePosition -= 1.f;
+                        }
                         hsvVec.x += mHuePosition;
                         if (hsvVec.x > 1.f) {
                             hsvVec.x -= 1.f;
+                        } else if (hsvVec.x < 0.f) {
+                            hsvVec.x += 1.f;
                         }
                         Colorf pix = hsvToRGB(hsvVec);
                         iterNewSurface.r() = pix.r;
