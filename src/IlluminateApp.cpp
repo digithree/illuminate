@@ -308,7 +308,7 @@ void IlluminateApp::setup()
     mParams.addParam( "Move Left to Right", &mMoveL2R, "min=-1500.0 max=1500.0 step=5.0 keyIncr=w keyDecr=s" );
     mParams.addParam( "Move Top to Bottom", &mMoveT2B, "min=-1500.0 max=1500.0 step=5.0 keyIncr=e keyDecr=d" );
     mParams.addParam( "Skew", &mSkew, "min=-85.0 max=85.0 step=1.0 keyIncr=r keyDecr=f" );
-    mParams.addParam( "Feedback", &mFeedback, "min=0.000001 max=1.0 step=0.000001 keyIncr=t keyDecr=g" );
+    mParams.addParam( "Feedback", &mFeedback, "min=0.000001 max=1.0 step=0.001 keyIncr=t keyDecr=g" );
     mParams.addParam( "Frame Skip", &mFrameSkip, "min=0 max=2 step=1 keyIncr=y keyDecr=h" );
     mParams.addParam( "Blur active", &mBlurOn, "" );
     mParams.addParam( "Hue rotation active", &mHueModOn, "" );
@@ -580,10 +580,11 @@ void IlluminateApp::update()
                     }
                     if (mBlurOn) {
                         if (mSkippedFrames == 0) {
-                            // feedback
-                            iterOldSurface.r() = (int)(((float)iterOldSurface.r()) * mFeedback);
-                            iterOldSurface.g() = (int)(((float)iterOldSurface.g()) * mFeedback);
-                            iterOldSurface.b() = (int)(((float)iterOldSurface.b()) * mFeedback);
+                            // feedback, using curve as applied to input number
+                            float feedback = powf(mFeedback, 1.f / 3.f); // cube root, more values closer to 1.f
+                            iterOldSurface.r() = (int)(((float)iterOldSurface.r()) * feedback);
+                            iterOldSurface.g() = (int)(((float)iterOldSurface.g()) * feedback);
+                            iterOldSurface.b() = (int)(((float)iterOldSurface.b()) * feedback);
                         } else {
                             // 100% feedback on skipped frames
                             //iterOldSurface.r() = iterOldSurface.r();
