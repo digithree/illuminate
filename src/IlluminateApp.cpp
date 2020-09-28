@@ -11,12 +11,15 @@
 #include "OscListener.h"
 #include "OscMessage.h"
 #include "XmlSettings.h"
+#include "fileDialog.h"
 
 #define OSC_PORT    8000
 
 using namespace ci;
 using namespace ci::app;
 using namespace std;
+
+//extern std::vector<std::string> openFileDialog();
 
 class IlluminateApp : public AppNative {
   public:
@@ -84,8 +87,6 @@ class IlluminateApp : public AppNative {
     
     float               mNewestFrameMix;
     
-    int                 mCurrentSaveBank;
-    
     osc::Listener       listener;
     
     cinder::Area        mDrawArea;
@@ -105,8 +106,6 @@ class IlluminateApp : public AppNative {
     void setupSettings();
     void loadSettings();
     void saveSettings();
-    void loadSettingsBank();
-    void saveSettingsBank();
 };
 
 void IlluminateApp::setupSettings() {
@@ -130,50 +129,18 @@ void IlluminateApp::setupSettings() {
     mSettings.addParam("camheight", &camHeight);
 }
 
-void IlluminateApp::loadSettings() {
-    string filename = getOpenFilePath().generic_string();
-    
-    if ( filename != "" ) {
-        mSettings.load(filename);
-        console() << "loaded settings from file" << endl;
-        if (!camName.empty() && camWidth > 0 && camHeight > 0) {
-            for( vector<CaptureInfo>::const_iterator it = mCaptureInfos.begin(); it != mCaptureInfos.end(); ++it ) {
-                CaptureInfo info = *it;
-                if (info.deviceRef->getName().compare(camName) == 0) {
-                    // start camera
-                    mCaptureInfo = info;
-                    try {
-                        if (mCapture) {
-                            mCapture->stop();
-                            mCapture = NULL;
-                        }
-                        mCapture = Capture::create(mCaptureInfo.width, mCaptureInfo.height, mCaptureInfo.deviceRef);
-                        mCapture->start();
-                        console() << "Started capture: " << mCaptureInfo.deviceRef->getName() << ", " << mCaptureInfo.width << "x" << mCaptureInfo.height << endl;
-                    }
-                    catch( CaptureExc & ) {
-                        console() << "Error starting capture " << mCaptureInfo.deviceRef->getName() << ", " << mCaptureInfo.width << "x" << mCaptureInfo.height << endl;
-                    }
-                }
-            }
-        }
-    } else {
-        console() << "error loading settings from file" << endl;
-    }
-}
-
 void IlluminateApp::saveSettings() {
-    fs::path path = getSaveFilePath().generic_string();
-    if ( !path.empty() ) {
-        mSettings.save( path );
+    string filename = saveFileDialog(NULL);
+    if (!filename.empty()) {
+        mSettings.save(filename);
         console() << "saved settings from file" << endl;
     } else {
         console() << "error saving settings from file" << endl;
     }
 }
 
-void IlluminateApp::loadSettingsBank() {
-    string filename = getHomeDirectory().generic_string() + "illuminate_bank" + std::to_string(mCurrentSaveBank) + ".sav";
+void IlluminateApp::loadSettings() {
+    string filename = openFileDialog(NULL);
     
     mSettings.load(filename);
     console() << "loaded settings from file " << filename << endl;
@@ -204,13 +171,6 @@ void IlluminateApp::loadSettingsBank() {
         }
     }
 }
-
-void IlluminateApp::saveSettingsBank() {
-    string filename = getHomeDirectory().generic_string() + "illuminate_bank" + std::to_string(mCurrentSaveBank) + ".sav";
-    mSettings.save(filename);
-    console() << "saved settings from file" << endl;
-}
-
 
 void IlluminateApp::prepareSettings( Settings *settings ) {
     settings->setFrameRate(60);
@@ -286,8 +246,6 @@ void IlluminateApp::setup()
     
     mNewestFrameMix = NEW_FRAME_MIX;
     
-    mCurrentSaveBank = 1;
-    
     gl::enableAlphaBlending();
     
     // SETUP PARAMS
@@ -307,9 +265,8 @@ void IlluminateApp::setup()
     mParams.addParam( "Flip vert", &mFlipVert, "" );
     mParams.addParam( "Newest Frame Mix", &mNewestFrameMix, "min=0.00 max=1.0 step=0.01 keyIncr=u keyDecr=j" );
     mParams.addSeparator();
-    mParams.addParam("Current Save Bank", &mCurrentSaveBank, "min=1 max=10 step=1 keyIncr=p keyDecr=l" );
-    mParams.addButton("Save settings", [&]{saveSettingsBank();});
-    mParams.addButton("Load settings", [&]{loadSettingsBank();});
+    mParams.addButton("Save settings", [&]{saveSettings();});
+    mParams.addButton("Load settings", [&]{loadSettings();});
     mParams.addSeparator();
     if (mCaptureInfos.size() > 0) {
         // captures
@@ -472,40 +429,10 @@ void IlluminateApp::update()
                 mHueRotSpeed = message.getArgAsFloat(0);
             } else if (message.getAddress().compare("/1/new_frame_mix") == 0) {
                 mNewestFrameMix = 1.f - message.getArgAsFloat(0);
-            } else if (message.getAddress().compare("/1/savebank/10/1") == 0) {
-                mCurrentSaveBank = 1;
-                console() << "savebank changed: " << mCurrentSaveBank << endl;
-            } else if (message.getAddress().compare("/1/savebank/9/1") == 0) {
-                mCurrentSaveBank = 2;
-                console() << "savebank changed: " << mCurrentSaveBank << endl;
-            } else if (message.getAddress().compare("/1/savebank/8/1") == 0) {
-                mCurrentSaveBank = 3;
-                console() << "savebank changed: " << mCurrentSaveBank << endl;
-            } else if (message.getAddress().compare("/1/savebank/7/1") == 0) {
-                mCurrentSaveBank = 4;
-                console() << "savebank changed: " << mCurrentSaveBank << endl;
-            } else if (message.getAddress().compare("/1/savebank/6/1") == 0) {
-                mCurrentSaveBank = 5;
-                console() << "savebank changed: " << mCurrentSaveBank << endl;
-            } else if (message.getAddress().compare("/1/savebank/5/1") == 0) {
-                mCurrentSaveBank = 6;
-                console() << "savebank changed: " << mCurrentSaveBank << endl;
-            } else if (message.getAddress().compare("/1/savebank/4/1") == 0) {
-                mCurrentSaveBank = 7;
-                console() << "savebank changed: " << mCurrentSaveBank << endl;
-            } else if (message.getAddress().compare("/1/savebank/3/1") == 0) {
-                mCurrentSaveBank = 8;
-                console() << "savebank changed: " << mCurrentSaveBank << endl;
-            } else if (message.getAddress().compare("/1/savebank/2/1") == 0) {
-                mCurrentSaveBank = 9;
-                console() << "savebank changed: " << mCurrentSaveBank << endl;
-            } else if (message.getAddress().compare("/1/savebank/1/1") == 0) {
-                mCurrentSaveBank = 10;
-                console() << "savebank changed: " << mCurrentSaveBank << endl;
             } else if (message.getAddress().compare("/1/save") == 0) {
-                saveSettingsBank();
+                saveSettings();
             } else if (message.getAddress().compare("/1/load") == 0) {
-                loadSettingsBank();
+                loadSettings();
             } else {
                 console() << "Didn't understand OSC mesage" << std::endl;
                 console() << "- Num args: " << message.getNumArgs() << std::endl;

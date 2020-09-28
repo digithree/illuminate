@@ -23,6 +23,7 @@
 		6E09734D477F4B21A7238A6E /* OscSender.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 36D7BE27601A4B35A33E64B3 /* OscSender.cpp */; };
 		80FDAD116BBB4B0987AEF50C /* OscListener.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 495E301061074736A536703C /* OscListener.cpp */; };
 		873DD4C71DF48EB900D2DDB5 /* XmlSettings.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 873DD4C51DF48EB900D2DDB5 /* XmlSettings.cpp */; };
+		87A5FBAF2521E8E70060E349 /* fileDialog.mm in Sources */ = {isa = PBXBuildFile; fileRef = 87A5FBAE2521E8E70060E349 /* fileDialog.mm */; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
 		9EF6E739CCEA48B4933C1C49 /* IlluminateApp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 73A7083CE62341DEB0F9EF75 /* IlluminateApp.cpp */; };
 		A07F6DB928874D7C9DCADA78 /* OscMessage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 24AFEE8D36924794850153D0 /* OscMessage.cpp */; };
@@ -63,6 +64,8 @@
 		871BD3D4D86D42E288ECB4D2 /* OscOutboundPacketStream.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OscOutboundPacketStream.h; path = ../blocks/OSC/src/osc/OscOutboundPacketStream.h; sourceTree = "<group>"; };
 		873DD4C51DF48EB900D2DDB5 /* XmlSettings.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = XmlSettings.cpp; sourceTree = "<group>"; };
 		873DD4C61DF48EB900D2DDB5 /* XmlSettings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XmlSettings.h; sourceTree = "<group>"; };
+		87A5FBAE2521E8E70060E349 /* fileDialog.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = fileDialog.mm; path = ../src/fileDialog.mm; sourceTree = "<group>"; };
+		87A5FBB02521ECE90060E349 /* fileDialog.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = fileDialog.h; path = ../src/fileDialog.h; sourceTree = "<group>"; };
 		87C18BC5641F48F88EF1D0D4 /* OscPrintReceivedElements.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OscPrintReceivedElements.h; path = ../blocks/OSC/src/osc/OscPrintReceivedElements.h; sourceTree = "<group>"; };
 		88C3C262701146309D9708BF /* OscTypes.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.cpp; name = OscTypes.cpp; path = ../blocks/OSC/src/osc/OscTypes.cpp; sourceTree = "<group>"; };
 		8C06ABA7979640DE899CD88E /* OscListener.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OscListener.h; path = ../blocks/OSC/src/OscListener.h; sourceTree = "<group>"; };
@@ -113,6 +116,8 @@
 			isa = PBXGroup;
 			children = (
 				73A7083CE62341DEB0F9EF75 /* IlluminateApp.cpp */,
+				87A5FBAE2521E8E70060E349 /* fileDialog.mm */,
+				87A5FBB02521ECE90060E349 /* fileDialog.h */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -339,6 +344,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				87A5FBAF2521E8E70060E349 /* fileDialog.mm in Sources */,
 				9EF6E739CCEA48B4933C1C49 /* IlluminateApp.cpp in Sources */,
 				873DD4C71DF48EB900D2DDB5 /* XmlSettings.cpp in Sources */,
 				17FF6907489743AFB7B3818E /* OscBundle.cpp in Sources */,
