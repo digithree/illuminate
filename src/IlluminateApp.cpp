@@ -47,6 +47,7 @@ class IlluminateApp : public AppNative {
     int                 camWidth;
     int                 camHeight;
     
+    bool                mCameraActive;
     CaptureRef	        mCapture;
     Surface             mImgSurface;
     Surface             mDisplaySurface;
@@ -229,9 +230,9 @@ void IlluminateApp::setup()
 {
     setupSettings();
     
-    int numCaptureResolutions = 1;
-    int captureResolutionsWidth[] = {640}; //1024, 800,
-    int captureResolutionsHeight[] = {480}; //768, 600,
+    int numCaptureResolutions = 7;
+    int captureResolutionsWidth[] = {640, 800, 1024, 1280, 1920, 2048, 2560};
+    int captureResolutionsHeight[] = {480, 600, 768, 720, 1080, 1152, 1440};
     
     mCaptureInfos = vector<CaptureInfo>();
     
@@ -247,33 +248,17 @@ void IlluminateApp::setup()
         Capture::DeviceRef device = *deviceIt;
         console() << "Found Device " << device->getName() << " ID: " << device->getUniqueId() << std::endl;
         for (int i = 0 ; i < numCaptureResolutions ; i++) {
-            CaptureRef testCapture;
-            try {
-                if( device->checkAvailable() ) {
-                    testCapture = Capture::create( captureResolutionsWidth[i], captureResolutionsHeight[i], device );
-                    testCapture->start();
-                    if (testCapture->isCapturing()) {
-                        // success
-                        CaptureInfo info = CaptureInfo();
-                        info.deviceRef = device;
-                        info.listIdx = c;
-                        info.width = captureResolutionsWidth[i];
-                        info.height = captureResolutionsHeight[i];
-                        mCaptureInfos.push_back(info);
-                    } else {
-                        console() << "device is available but did not init at " << captureResolutionsWidth[i] << "x" << captureResolutionsHeight[i] << std::endl;
-                    }
-                    testCapture->stop();
-                }
-                else
-                    console() << "device is NOT available" << std::endl;
-            }
-            catch( CaptureExc & ) {
-                console() << "Unable to initialize device: " << device->getName() << endl;
-            }
+            CaptureInfo info = CaptureInfo();
+            info.deviceRef = device;
+            info.listIdx = c;
+            info.width = captureResolutionsWidth[i];
+            info.height = captureResolutionsHeight[i];
+            mCaptureInfos.push_back(info);
+            c++;
         }
-        c++;
     }
+    
+    mCameraActive = false;
     
     mCameraDistance = ZOOM;
     mEye			= Vec3f( 0.0f, 0.0f, mCameraDistance );
@@ -322,6 +307,10 @@ void IlluminateApp::setup()
     mParams.addParam( "Flip vert", &mFlipVert, "" );
     mParams.addParam( "Newest Frame Mix", &mNewestFrameMix, "min=0.00 max=1.0 step=0.01 keyIncr=u keyDecr=j" );
     mParams.addSeparator();
+    mParams.addParam("Current Save Bank", &mCurrentSaveBank, "min=1 max=10 step=1 keyIncr=p keyDecr=l" );
+    mParams.addButton("Save settings", [&]{saveSettingsBank();});
+    mParams.addButton("Load settings", [&]{loadSettingsBank();});
+    mParams.addSeparator();
     if (mCaptureInfos.size() > 0) {
         // captures
         int c = 0;
@@ -359,10 +348,6 @@ void IlluminateApp::setup()
     } else {
         mParams.addText("No cameras detected");
     }
-    mParams.addSeparator();
-    mParams.addParam("Current Save Bank", &mCurrentSaveBank, "min=1 max=10 step=1 keyIncr=p keyDecr=l" );
-    mParams.addButton("Save settings", [&]{saveSettingsBank();});
-    mParams.addButton("Load settings", [&]{loadSettingsBank();});
     
     // Start OSC listener
     listener.setup(OSC_PORT);
@@ -370,6 +355,7 @@ void IlluminateApp::setup()
 
 void IlluminateApp::selectCamera(int idx, bool resetZoom)
 {
+    mCameraActive = false;
     if (mCaptureInfos.size() > 0 && idx < mCaptureInfos.size()) {
         int c = 0;
         for( vector<CaptureInfo>::const_iterator it = mCaptureInfos.begin(); it != mCaptureInfos.end(); ++it ) {
@@ -553,6 +539,7 @@ void IlluminateApp::update()
     }
     
     if (mCapture && mCapture->checkNewFrame()) {
+        mCameraActive = true;
         if (++mSkippedFrames >= mFrameSkip) {
             mSkippedFrames = 0;
         }
@@ -640,7 +627,7 @@ void IlluminateApp::draw()
     gl::enableDepthRead();
     gl::enableDepthWrite();
     
-    if( imgTexture ) {
+    if(mCameraActive) {
         gl::draw(imgTexture, mDrawArea, mDrawAreaScreen);
     } else if (mCapture) {
         gl::drawStringCentered("Waiting for camera...\n\nIf this takes a long time\nthere is a problem", getWindowCenter());
