@@ -79,6 +79,7 @@ class IlluminateApp : public AppNative {
     bool                mHueDirection;
     
     bool                mFlipHorz;
+    bool                mFlipVert;
     
     float               mNewestFrameMix;
     
@@ -120,6 +121,7 @@ void IlluminateApp::setupSettings() {
     mSettings.addParam("huewidth", &mHueWidth);
     mSettings.addParam("huerotspeed", &mHueRotSpeed);
     mSettings.addParam("fliphorz", &mFlipHorz);
+    mSettings.addParam("flipvert", &mFlipVert);
     mSettings.addParam("newestframemix", &mNewestFrameMix);
     
     mSettings.addParam("camname", &camName);
@@ -288,6 +290,7 @@ void IlluminateApp::setup()
     mSkippedFrames = 0;
     
     mFlipHorz = true;
+    mFlipVert = false;
     
     mHueModOn = false;
     mHueRotSpeed = 0.f;
@@ -316,6 +319,7 @@ void IlluminateApp::setup()
     mParams.addParam( "Hue rotation width", &mHueWidth, "min=0.00 max=1.0 step=0.01" );
     mParams.addParam( "Hue rotation spd", &mHueRotSpeed, "min=0.00 max=1.0 step=0.01 keyIncr=y keyDecr=h" );
     mParams.addParam( "Flip horz", &mFlipHorz, "" );
+    mParams.addParam( "Flip vert", &mFlipVert, "" );
     mParams.addParam( "Newest Frame Mix", &mNewestFrameMix, "min=0.00 max=1.0 step=0.01 keyIncr=u keyDecr=j" );
     mParams.addSeparator();
     if (mCaptureInfos.size() > 0) {
@@ -468,6 +472,8 @@ void IlluminateApp::update()
                 mSkew = (message.getArgAsFloat(0) * 85.f);
             } else if (message.getAddress().compare("/1/horz_flip") == 0) {
                 mFlipHorz = message.getArgAsFloat(0) != 0.f;
+            } else if (message.getAddress().compare("/1/vert_flip") == 0) {
+                mFlipVert = message.getArgAsFloat(0) != 0.f;
             } else if (message.getAddress().compare("/1/frame_skip") == 0) {
                 mFrameSkip = message.getArgAsInt32(0);
             } else if (message.getAddress().compare("/1/blur_switch") == 0) {
@@ -542,7 +548,7 @@ void IlluminateApp::update()
         mCamPrep.lookAt( mEye, mCenter, mUp );
         gl::setMatrices( mCamPrep );
         gl::rotate(180);
-        gl::rotate(Vec3f(mSkew, mFlipHorz ? 180 : 0, 0));
+        gl::rotate(Vec3f(mSkew, mFlipHorz ? 180 : 0, mFlipVert ? 180 : 0));
         gl::translate(mTrans);
     }
     
