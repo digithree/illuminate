@@ -309,7 +309,7 @@ void IlluminateApp::setup()
     mParams.addParam( "Move Top to Bottom", &mMoveT2B, "min=-1500.0 max=1500.0 step=5.0 keyIncr=e keyDecr=d" );
     mParams.addParam( "Skew", &mSkew, "min=-85.0 max=85.0 step=1.0 keyIncr=r keyDecr=f" );
     mParams.addParam( "Feedback", &mFeedback, "min=0.000001 max=1.0 step=0.001 keyIncr=t keyDecr=g" );
-    mParams.addParam( "Frame Skip", &mFrameSkip, "min=0 max=2 step=1 keyIncr=y keyDecr=h" );
+    mParams.addParam( "Frame Skip", &mFrameSkip, "min=0 max=20 step=1 keyIncr=y keyDecr=h" );
     mParams.addParam( "Blur active", &mBlurOn, "" );
     mParams.addParam( "Hue rotation active", &mHueModOn, "" );
     mParams.addParam( "Hue rotation center", &mHueCenter, "min=0.00 max=1.0 step=0.01" );
